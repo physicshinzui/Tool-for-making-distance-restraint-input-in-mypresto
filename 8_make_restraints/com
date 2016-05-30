@@ -1,0 +1,21 @@
+#
+  ifort -o  aho.exe  main_dist_rest.f
+##ifort -o  aho.exe  main_center.f
+
+##  rm cap_center.out distance.out
+#**********************************
+#  (1) For calculating distance.inp.
+
+  rm distance.inp
+
+  ln -s  inp.pdb fort.10
+  ln -s  distance.inp fort.20
+##ln -s  line.dat fort.30
+
+  ./aho.exe < res_no_chg.tbl > aho.res
+
+  rm fort.*
+#**********************************
+  rm work.*
+  rm aho.exe
+
