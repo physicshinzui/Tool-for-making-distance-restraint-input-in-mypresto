@@ -4,7 +4,8 @@ import numpy as np
 import math
 import sys
 
-def GetInfoSpecifiedAtoms(structure, SpecifiedAtomTypes=["CA"]):
+"""In here, should I include some code for simplicity? """
+def GetInfoAtoms(structure): #SpecifiedAtomTypes):
    info_list = []
    for model in structure:
      for chain in model:
@@ -15,34 +16,55 @@ def GetInfoSpecifiedAtoms(structure, SpecifiedAtomTypes=["CA"]):
 	 Resname = residue.resname
          ResNo   = residue.id[1]
          for atom in residue:
-           if atom.get_name() in SpecifiedAtomTypes:
-             info = [[ChainId,ResNo,Resname,atom.get_name()], atom.get_coord()]
-             info_list.append(info)
-	   else:
-	    # print "Ignored atom:", atom.get_name()
-	     pass
+           #if atom.get_name() in SpecifiedAtomTypes:
+           info = [[ChainId,ResNo,Resname,atom.get_name()], atom.get_coord()]
+           info_list.append(info)
    return info_list
 
-def GetCoordinates(info_list):
-    NoOfAtoms   = len(info_list)
-    coordinates = [InfoSpecifiedAtoms[i][1] for i in xrange(NoOfAtoms)]
-    return coordinates
-  
 
-def calc_distance(coordA, coordB):
+def CalcDistance(coordA, coordB):
   deltaVector = coordA-coordB
   dist = math.sqrt(np.dot(deltaVector,deltaVector))
   return dist
 
-def GetInfoDistances(info_list, cutoff):
-  distances = []
+def GetInfoDistances(info_list):
+  distances_info = []
   natoms = len(info_list)
   for i in xrange(natoms):
     for j in xrange(i+1,natoms):
-      dist = calc_distance(info_list[i][1],info_list[j][1] )
-      if dist < cutoff:
-        distances.append([info_list[i][0],info_list[j][0],dist])
-  return distances
+      dist = CalcDistance(info_list[i][1],info_list[j][1] )
+      distances_info.append([info_list[i][0], info_list[j][0], dist])
+  return distances_info 
+
+
+def PrintError(selection):
+  pass
+
+def ExtractDistances(distances_info,cutoff, SelectionList):
+  Selection1 = SelectionList[0]
+  Selection2 = SelectionList[1]
+
+  ChainId1  =Selection1[0] 
+  Resi1     =Selection1[1] 
+  AtomName1 =Selection1[2] 
+
+  ChainId2  =Selection2[0] 
+  Resi2     =Selection2[1] 
+  AtomName2 =Selection2[2] 
+
+  print "Selection 1: ",Selection1 
+  print "Selection 2: ",Selection2 
+
+  ListExtractedDistances = []
+  for line in distances_info:
+    if line[0][0] == ChainId1 and line[0][1] >= Resi1[0] and line[0][1] <= Resi1[1] and line[0][3] == AtomName1 and \
+       line[1][0] == ChainId2 and line[1][1] >= Resi2[0] and line[1][1] <= Resi2[1] and line[1][3] == AtomName2 and \
+       line[2] < cutoff:
+      #print line
+      ListExtractedDistances.append(line)
+    else:
+      pass
+  return ListExtractedDistances
 
 def ReplacePositiveChargedResNameForTplgeneFormat(Resname):
    if Resname == "ARG":
@@ -83,7 +105,7 @@ def MakingInpDistanceRest(DistancesInfo, FluctuationRange):
 
      if LowerLim < 0:
        print group1, group2, distance
-       sys.exit("???Lower limit is negative.???")
+       sys.exit("???Lower limit is negative. STOP???")
 
      fout.write(" " +
                 group1   + " " +
@@ -96,29 +118,50 @@ def MakingInpDistanceRest(DistancesInfo, FluctuationRange):
    fout.write("RDDSTC> STOP\n")
    fout.close()
 
+def ReadSelectionList(filename):
+  fin = open(filename, "r")
+  SelectionList = [line.rstrip().split(",") for line in fin]
+  for i, line in enumerate(SelectionList):
+      SelectionList[i][1] = map(int,line[1].split("-"))
+      SelectionList[i][2] = line[2].strip()
+  return SelectionList
+
+
 if __name__ == "__main__":
    import sys
    import argparse
    
    parser = argparse.ArgumentParser()
    parser.add_argument("-i", "--reference", required = True) 
-   parser.add_argument("-c", "--cutoff", required = True) 
-   parser.add_argument("-fr","--fluctuation_range",   nargs=2) 
-   parser.add_argument("-at","--specified_atom_type", nargs="*", required = True) 
+   parser.add_argument("-c", "--cutoff",type=float, required = True) 
+   parser.add_argument("-fr","--fluctuation_range",type=float, nargs=2) 
+   parser.add_argument("-s", "--selection_parameter_file", required = True) 
    args = parser.parse_args()
 
+   #***Parse here
    ref      = args.reference
-   cutoff   = float(args.cutoff) 
-   frange   = map(float,args.fluctuation_range)
-   atomtype = args.specified_atom_type
+   cutoff   = args.cutoff
+   frange   = args.fluctuation_range
+   SelectionParamFile = args.selection_parameter_file
    print "Reference: ", args.reference
    print "Cutoff   : ", cutoff
    print "fluctuation range:", frange
+   print "Selection list: ",SelectionParamFile
+   SelectionList = ReadSelectionList(SelectionParamFile)
 
    pParser = PDBParser()
    st      = pParser.get_structure("ref_system", ref)
 
-   InfoSpecifiedAtoms  = GetInfoSpecifiedAtoms(st, atomtype)
+   #***Store informatino of all atoms of a refrerence PDB
+   InfoAtoms  = GetInfoAtoms(st)
+   print "#DBG No of atoms   :", len(InfoAtoms)
 
-   distancesInfo = GetInfoDistances(InfoSpecifiedAtoms, cutoff)
-   MakingInpDistanceRest(distancesInfo, frange)
+   #***
+   distancesInfo = GetInfoDistances(InfoAtoms)
+   print "#DBG NO of pairs   :", len(distancesInfo)
+
+   #***
+   extracted_distances = ExtractDistances(distancesInfo, cutoff, SelectionList)
+   print "#DBG No of pairs in cutoff distance:",len(extracted_distances)
+
+   MakingInpDistanceRest(extracted_distances, frange)
