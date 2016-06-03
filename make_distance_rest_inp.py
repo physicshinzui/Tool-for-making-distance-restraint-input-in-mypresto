@@ -89,9 +89,9 @@ def DetermineRangeOfDistanceFluctuation(distance, LowerLimit=1.5, UpperLimit=3.5
   ListLimit = [distanceLowerLim, distanceUpperLim]
   return ListLimit
 
-def MakingInpDistanceRest(DistancesInfo, FluctuationRange):
-   fout = open("restreint.inp", "w")
-   fout.write("RDDSTC> LIST" + "\n")
+def MakingInpDistanceRest(DistancesInfo, FluctuationRange, filename):
+   fout = open(filename, "w")
+   fout.write("RDDSTC> LIST\n")
    for line in DistancesInfo:
      line[0][2] = ReplacePositiveChargedResNameForTplgeneFormat(line[0][2])
      line[1][2] = ReplacePositiveChargedResNameForTplgeneFormat(line[1][2])
@@ -100,21 +100,35 @@ def MakingInpDistanceRest(DistancesInfo, FluctuationRange):
      LowerLim = fluctuation_limit_list[0]
      UpperLim = fluctuation_limit_list[1]
 
-     group1 = "  ".join(map(str,line[0]))
-     group2 = "  ".join(map(str,line[1]))
+     group1 = line[0]
+     group2 = line[1]
+
+     #group1 = map(str,line[0])
+     #group2 = map(str,line[1])
+
+     #group1 = "  ".join(map(str,line[0]))
+     #group2 = "  ".join(map(str,line[1]))
 
      if LowerLim < 0:
        print group1, group2, distance
        sys.exit("???Lower limit is negative. STOP???")
 
-     fout.write(" " +
-                group1   + " " +
-                group2   + " " +
-                str(1.0) + " " +
-                str(1.0) + " " +
-                str(LowerLim) + " " +
-                str(UpperLim) + " " +
-                "YES\n")
+     fout.write("{0:>2}{1:>5}  {2:<5}{3:>4} ".format(
+                group1[0],\
+                group1[1],\
+                group1[2],\
+                group1[3]))
+     fout.write("{0:>2}{1:>5}  {2:<5}{3:>4}  ".format(
+                group2[0],\
+                group2[1],\
+                group2[2],\
+                group2[3]))
+     fout.write("{0:.1f}  {1:.1f}  ".format(
+                1.0,\
+                1.0))
+     fout.write("%10.3f %10.3f" %(LowerLim,UpperLim))
+     fout.write("  {0:>3}".format("YES\n"))
+
    fout.write("RDDSTC> STOP\n")
    fout.close()
 
@@ -133,6 +147,7 @@ if __name__ == "__main__":
    
    parser = argparse.ArgumentParser()
    parser.add_argument("-i", "--reference", required = True) 
+   parser.add_argument("-o", "--output", required = True) 
    parser.add_argument("-c", "--cutoff",type=float, required = True) 
    parser.add_argument("-fr","--fluctuation_range",type=float, nargs=2) 
    parser.add_argument("-s", "--selection_parameter_file", required = True) 
@@ -140,6 +155,7 @@ if __name__ == "__main__":
 
    #***Parse here
    ref      = args.reference
+   outfile  = args.output
    cutoff   = args.cutoff
    frange   = args.fluctuation_range
    SelectionParamFile = args.selection_parameter_file
@@ -164,4 +180,4 @@ if __name__ == "__main__":
    extracted_distances = ExtractDistances(distancesInfo, cutoff, SelectionList)
    print "#DBG No of pairs in cutoff distance:",len(extracted_distances)
 
-   MakingInpDistanceRest(extracted_distances, frange)
+   MakingInpDistanceRest(extracted_distances, frange, outfile)
