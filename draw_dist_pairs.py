@@ -5,8 +5,8 @@ This was made by sinzi
 import sys
 from pymol import cmd
 
-def error_deal():
-  pass
+# usage type
+# draw_dist_pairs drs.inp, molecule_object 
 
 def draw_dist_pairs(drs_inp, molecule, draw_type="line"):
   f_drsinp = open(drs_inp, "r")
