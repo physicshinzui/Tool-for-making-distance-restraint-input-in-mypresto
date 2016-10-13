@@ -1,10 +1,6 @@
 # Tool-for-making-distance-restraint-input-in-mypresto
 
-This program depends on BioPython.
-
-Note:
-Do not use chain id A,B,C,..., but 1,2,3,...whose order must be arranged based on a tpl file.
+This program depends on MDAnalysis (http://www.mdanalysis.org/).
 
 Example:
-python make_distance_rest_inp.py --reference merged.pdb --cutoff 10.0 --fluctuation_range 1.5 4.5  -s selection.list -o restraint.inp
-
+python make_distance_rest_inp.py -i ../for_restraint_CTD_S100B/make_disres/aaa.pdb -o tes.inp -c 25.0 -fr 0.5 0.5 -s "segid 1 and name CA"
